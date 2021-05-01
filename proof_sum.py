@@ -1,6 +1,5 @@
 from sage.all import *
 
-from params import PP.kappa, PP.seedlen, PP.baselen, R
 from public import gen_public_b
 from proof_amo import proof_amo, proof_amo_to_zero, verify_amo, verify_amo_to_zero
 from linear_alg import scalar
@@ -9,12 +8,16 @@ from commit import commit
 
 
 # S = (s_1, ..., s_p); T0 = (t0_1, ..., t0_p); T1 = (t1_1, ..., t1_p)
-def sum_of_commitments(S, T0, T1, u, public_seed):
+def sum_of_commitments(PP, S, T0, T1, public_seed):
+    d = PP.d
+    X = PP.X
+    u = PP.u
+
     p = len(S)
     max_layers = ceil(log(p, u))
     
     B0, b1 = gen_public_b(PP, public_seed)
-    X = list(T1[i] - scalar(b1, S[i]) for i in range(p))
+    X = list(T1[i] - scalar(b1, S[i], X, d) for i in range(p))
     
     S_amo = []
     T0_amo = []
@@ -37,7 +40,7 @@ def sum_of_commitments(S, T0, T1, u, public_seed):
             end = min((b + 1) * u, max_index)
             m = sum(X[i] for i in range(start, end))
             X[b] = m
-            t0, t1, r, nonce = commit(B0, b1, m, r_seed, nonce)
+            t0, t1, r, nonce = commit(PP, B0, b1, m, r_seed, nonce)
             
             t0_prime = list(t0[i] - sum(T0_amo[j + offset][i] for j in range(start, end)) for i in range(PP.kappa))
             t1_prime = t1 - sum(T1_amo[j + offset] for j in range(start, end))
@@ -52,21 +55,27 @@ def sum_of_commitments(S, T0, T1, u, public_seed):
         offset += max_index
         max_index = blocks
     
-    amo_proof = proof_amo(Matrix(R, S_amo).transpose(), Matrix(R, T0_amo).transpose(), len(T1_amo), public_seed)
+    R = PP.R
+    amo_proof = proof_amo(PP, Matrix(R, S_amo).transpose(), Matrix(R, T0_amo).transpose(), len(T1_amo), public_seed)
     amo_zero_proof = proof_amo_to_zero(
-        Matrix(R, S_amo_zero).transpose(), Matrix(R, T0_amo_zero).transpose(), vector(R, T1_amo_zero),
+        PP, Matrix(R, S_amo_zero).transpose(), Matrix(R, T0_amo_zero).transpose(), vector(R, T1_amo_zero),
         len(T1_amo_zero), public_seed)
     return amo_proof, amo_zero_proof, (T0_amo[p:], T1_amo[p:]), S_amo[-1]
 
 
-def verify_sum_of_commitments(amo_proof, amo_zero_proof, T_orig, T, u, public_seed):
+def verify_sum_of_commitments(PP, amo_proof, amo_zero_proof, T_orig, T, public_seed):
+    d = PP.d
+    X = PP.X
+    u = PP.u
+    R = PP.R
+
     T0_orig, T1_orig = T_orig
     p = len(T1_orig)
     max_layers = ceil(log(p, u))
     T0, T1 = T
     T0_amo = T0_orig + T0
     T1_amo = T1_orig + T1
-    if verify_amo(amo_proof, Matrix(R, T0_amo).transpose(), len(T1_amo), public_seed) != 0:
+    if verify_amo(PP, amo_proof, Matrix(R, T0_amo).transpose(), len(T1_amo), public_seed) != 0:
         print('Verification of amortized proof failed')
         return 1
     
@@ -93,7 +102,7 @@ def verify_sum_of_commitments(amo_proof, amo_zero_proof, T_orig, T, u, public_se
         offset_blocks += blocks
         offset += max_index
         max_index = blocks
-    if verify_amo_to_zero(amo_zero_proof, Matrix(R, T0_amo_zero).transpose(), vector(R, T1_amo_zero), \
+    if verify_amo_to_zero(PP, amo_zero_proof, Matrix(R, T0_amo_zero).transpose(), vector(R, T1_amo_zero), \
                           len(T1_amo_zero), public_seed) != 0:
         print('Verification of amortized proof of opening to zero failed')
         return 1
@@ -102,12 +111,13 @@ def verify_sum_of_commitments(amo_proof, amo_zero_proof, T_orig, T, u, public_se
 
 if __name__ == '__main__':
     public_seed = b'\xa3\xe4\xf3\xf9Gl\xb69\xe2\xff~\x02\x087I\x18\x9a\x08\x88\x15\xe1\x83\x02\x7fP\xd2\x13-\xa1\xb5.\x88'
-    from params import u, Nv
+    from params import PublicParams
     from proof_amo import gen_random_commitments
-    S, T0, T1 = gen_random_commitments(Nv, public_seed)
+    PP = PublicParams(2, 5, 10)
+    S, T0, T1 = gen_random_commitments(PP, public_seed)
     S, T0, T1 = list(S.transpose()), list(T0.transpose()), list(T1)
-    amo_proof, amo_zero_proof, T, r = sum_of_commitments(S, T0, T1, u, public_seed)
-    ver_result = verify_sum_of_commitments(amo_proof, amo_zero_proof, (T0, T1), T, u, public_seed)
+    amo_proof, amo_zero_proof, T, r = sum_of_commitments(PP, S, T0, T1, public_seed)
+    ver_result = verify_sum_of_commitments(PP, amo_proof, amo_zero_proof, (T0, T1), T, public_seed)
     if ver_result == 0:
         print('Verify is successfull')
     else:

@@ -118,18 +118,18 @@ def uniform_poly(PP, n, seed, nonce):
     return res, nonce
 
 
-def challenge_amo(seed, p, N):
+def challenge_amo(PP, seed, p):
     shake = SHAKE128.new()
     shake.update(seed)
     # absolutely not effective
     val_bytes = 2
-    rnd = shake.read(int(val_bytes * 2 * p * N))
+    rnd = shake.read(int(val_bytes * 2 * p * PP.amo_n))
     rnd_offset = 0
     
     c = []
     for i in range(p):
-        row = [0] * N
-        for j in range(N):
+        row = [0] * PP.amo_n
+        for j in range(PP.amo_n):
             while True:
                 if rnd_offset < len(rnd):
                     r = int.from_bytes(rnd[rnd_offset : rnd_offset + val_bytes], byteorder='big')
@@ -141,12 +141,12 @@ def challenge_amo(seed, p, N):
                     if r == 0:
                         row[j] = 0
                     else:
-                        row[j] = (-1)**(r & 1) * X**((r - 1) // 2)
+                        row[j] = (-1)**(r & 1) * PP.X**((r - 1) // 2)
                     break
         c.append(row)
     return c
 
 
-def discrete_gaussian_y(m, n, R, sigma):
+def discrete_gaussian_y(PP, m, n, sigma):
     D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-    return Matrix(R, m, n, lambda i, j: R(list(D() for _ in range(d))))
+    return Matrix(PP.R, m, n, lambda i, j: PP.R(list(D() for _ in range(PP.d))))

@@ -27,6 +27,8 @@ class PublicParams:
         P, X = PolynomialRing(Zq, name='X').objgen()
         self.P = P
         self.X = X
+        R, x = P.quotient(self.X**self.d + 1, 'x').objgen()
+        self.R = R
 
         self.lamb = 10
         self.kappa = 10
@@ -43,22 +45,22 @@ class PublicParams:
 
         self.amo_sec_param = 128
         self.amo_n = math.ceil((self.amo_sec_param + 2) / math.log(2 * self.d + 1))
-        p = Nv_max
-        u_power = self.u
-        for i in range(ceil(log(Nv_max, self.u))):
-            p += ceil(Nv_max / u_power)
-            u_power *= self.u
-        self.p = p
+        p = self.number_of_authority_commitments(Nv_max)
 
-        self.sigma2 = 11 * sqrt(self.baselen * self.amo_n * self.d * self.p)
+        self.sigma2 = 11 * sqrt(self.baselen * self.amo_n * self.d * p)
         self.average_rejection_tries = 3
-        self.beta2 = 11 * self.baselen * self.d * sqrt(2 * self.amo_n * self.p)
+        self.beta2 = 11 * self.baselen * self.d * sqrt(2 * self.amo_n * p)
 
         self.beta_commit_infty = 1
 
 
-    def poly_quot_ring(self):
-        return self.P.quotient(self.X**self.d + 1, 'x').objgen()
+    def number_of_authority_commitments(self, n):
+        p = n
+        u_power = self.u
+        for i in range(ceil(log(n, self.u))):
+            p += ceil(n / u_power)
+            u_power *= self.u
+        return p
 
 
 # Na = 2

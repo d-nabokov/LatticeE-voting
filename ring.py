@@ -55,14 +55,14 @@ powers = None
 if __name__ == '__main__':
     from params import PublicParams
     PP = PublicParams(2, 5, 10)
-    R, x = PP.poly_quot_ring()
+    R = PP.R
     f = R.random_element()
     f = PP.P(f.list())
     assert(INTT(PP, NTT(PP, f)) == f)
 
     # TODO: fix fully-splitting NTT
     PP = PublicParams(2, 127, 10)
-    R, x = PP.poly_quot_ring()
+    R = PP.R
     f = R.random_element()
     f = PP.P(f.list())
     assert(INTT(PP, NTT(PP, f)) == f)

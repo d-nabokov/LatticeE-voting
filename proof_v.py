@@ -20,14 +20,14 @@ def get_gamma(PP, t0, t1, t2, w):
     return gamma, gamma_hash
 
 
-def get_challenge_hash(gamma_hash, t3, vpp, h, vulp, seedlen):
+def get_challenge_hash(PP, gamma_hash, t3, vpp, h, vulp):
     shake = SHAKE128.new()
     shake.update(gamma_hash)
     shake.update(poly_to_bytes(t3))
     shake.update(poly_to_bytes(vpp))
     shake.update(poly_to_bytes(h))
     shake.update(poly_to_bytes(vulp))
-    c_hash = shake.read(int(seedlen))
+    c_hash = shake.read(int(PP.seedlen))
     return c_hash
 
 
@@ -48,7 +48,7 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     l = PP.l
     X = PP.X
 
-    try_index = 0
+    # try_index = 0
     m_prime = INTT(PP, [1] * PP.Nc + [0] * (l - PP.Nc))
     B0, b = gen_public_b_with_extra(PP, public_seed)
     seed = randombytes(PP.seedlen)
@@ -56,8 +56,8 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     g, nonce = random_poly_with_zeros(PP, seed, nonce, d, d//l)
     t2 = scalar(b[1], r, X, d) + g
     while True:
-        print('iteration', try_index)
-        try_index += 1
+        # print('iteration', try_index)
+        # try_index += 1
     
         y, nonce = uniform_poly(PP, PP.baselen, seed, nonce)
         w = matrix_vector(B0, y, X, d)
@@ -69,7 +69,7 @@ def proof_v(PP, t0, t1, r, m, public_seed):
         h = (g + intt_factor * m - gamma).mod(X**d + 1)
         vulp = scalar(list((intt_factor * b[0][i] + b[1][i]) for i in range(PP.baselen)), y, X, d)
 
-        c_hash = get_challenge_hash(gamma_hash, t3, vpp, h, vulp, PP.seedlen)
+        c_hash = get_challenge_hash(PP, gamma_hash, t3, vpp, h, vulp)
         c = get_challenge(PP, c_hash)
 
         z = [0] * PP.baselen
@@ -111,7 +111,7 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     intt_factor = l * gamma
     tau = (intt_factor * t1 - gamma).mod(X**d + 1)
     vulp = (scalar(list((intt_factor * b[0][i] + b[1][i]) for i in range(PP.baselen)), z, X, d) - c * (tau + t2 - h)).mod(X**d + 1)
-    c_hash_prime = get_challenge_hash(gamma_hash, t3, vpp, h, vulp, PP.seedlen)
+    c_hash_prime = get_challenge_hash(PP, gamma_hash, t3, vpp, h, vulp)
     if c_hash != c_hash_prime:
         print('c != c_prime')
         return 1
@@ -122,11 +122,11 @@ if __name__ == '__main__':
     from commit import commit
     from params import PublicParams
     from public import gen_public_b
+    public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
+
     PP = PublicParams(2, 5, 10)
     v = [0] * PP.l
     v[1] = 1
-
-    public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
     m = INTT(PP, v)
     B0, b1 = gen_public_b(PP, public_seed)
     r_seed = randombytes(PP.seedlen)
@@ -138,3 +138,14 @@ if __name__ == '__main__':
         print('Verify is successfull')
     else:
         print('There is an error in verification')
+
+    print('Trying negative scenarios')
+    for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
+        m = INTT(PP, v)
+        B0, b1 = gen_public_b(PP, public_seed)
+        r_seed = randombytes(PP.seedlen)
+        t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
+
+        proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
+        ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
+        assert(ver_result == 1)

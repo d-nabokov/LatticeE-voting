@@ -58,100 +58,100 @@ def _check_tally_sig(tally, CA):
     return 1
 
 
-def extract_from_ballot_by_j(v_id, a_id, BB):
+def extract_from_ballot_by_j(PP, v_id, a_id, BB):
     ballot = BB.get_ballot(v_id)
     # Should check signature
     ballot.signature
     # Should decrypt using authority's secret key
     r = ballot.enc_r[a_id]
-    if inf_norm_vect(r) > BETA_COMMIT_INFTY:
+    if inf_norm_vect(r, PP.q) > PP.beta_commit_infty:
         print('r has invalid values')
         return 1
     T0, T1 = ballot.com
     return r, T0[a_id], T1[a_id]
 
 
-def tally_j(a_id, public_seed, BB):
+def tally_j(PP, a_id, public_seed, BB):
     S = []
     T0 = []
     T1 = []
     for v_id, ballot in BB.all_ballots():
-        r, t0, t1 = extract_from_ballot_by_j(v_id, a_id, BB)
+        r, t0, t1 = extract_from_ballot_by_j(PP, v_id, a_id, BB)
         S.append(r)
         T0.append(t0)
         T1.append(t1)
-    amo_proof, amo_zero_proof, T, r = sum_of_commitments(S, T0, T1, u, public_seed)
+    amo_proof, amo_zero_proof, T, r = sum_of_commitments(PP, S, T0, T1, public_seed)
     # We should sign tallies
     signature = None
     BB.add_authority_tally(Tally(a_id, amo_proof, amo_zero_proof, T, r, signature))
     
     
-def _extract_authority_result(B0, b1, tally):
+def _extract_authority_result(PP, B0, b1, tally):
     r = tally.final_com_r
     T0, T1 = tally.additional_com
     t0 = T0[-1]
     t1 = T1[-1]
-    B0r = matrix_vector(B0, r)
+    B0r = matrix_vector(B0, r, PP.X, PP.d)
     zero = list(t0[i] - B0r[i] for i in range(PP.kappa))
-    x = t1 - scalar(b1, r)
+    x = t1 - scalar(b1, r, PP.X, PP.d)
     return zero, x
 
 
-def _check_zero(zero):
+def _check_zero(PP, zero):
     for i in range(PP.kappa):
         if zero[i] != 0:
             return 1
     return 0
 
 
-def _res_to_list_of_candidates(res):
-    return NTT(res)[:Nc]
+def _res_to_list_of_candidates(PP, res):
+    return NTT(PP, res)[:PP.Nc]
     
     
-def tally_all(public_seed, BB):
+def tally_all(PP, public_seed, BB):
     B0, b1 = gen_public_b(PP, public_seed)
     res = 0
     for a_id, tally in BB.all_tallies():
-        zero, x = _extract_authority_result(B0, b1, tally)
-        if _check_zero(zero):
+        zero, x = _extract_authority_result(PP, B0, b1, tally)
+        if _check_zero(PP, zero):
             raise Exception(f'autority {a_id} is cheating!')
         
         res += x
-    return _res_to_list_of_candidates(res)
+    return _res_to_list_of_candidates(PP, res)
 
 
-def verify(result, public_seed, BB):
+def verify(PP, result, public_seed, BB):
     B0, b1 = gen_public_b(PP, public_seed)
     T0_a = []
     T1_a = []
-    for i in range(Na):
+    for i in range(PP.Na):
         T0_a.append(list())
         T1_a.append(list())
     
     for v_id, ballot in BB.all_ballots():
         T0, T1 = ballot.com
-        for i in range(Na):
+        for i in range(PP.Na):
             T0_a[i].append(T0[i])
             T1_a[i].append(T1[i])
-        t0 = list(sum(T0[j][i] for j in range(Na)) for i in range(PP.kappa))
-        t1 = sum(T1[i] for i in range(Na))
-        if verify_v(ballot.vproof, (t0, t1), ballot.additional_com, public_seed):
+        t0 = list(sum(T0[j][i] for j in range(PP.Na)) for i in range(PP.kappa))
+        t1 = sum(T1[i] for i in range(PP.Na))
+        if verify_v(PP, ballot.vproof, (t0, t1), ballot.additional_com, public_seed):
             print(f'voter {v_id} is cheating!')
             return 1
     j = 0
     res = 0
     for a_id, tally in BB.all_tallies():
-        if verify_sum_of_commitments(tally.amo_proof, tally.amo_zero_proof,\
-                                        (T0_a[j], T1_a[j]), tally.additional_com, u, public_seed):
+        if verify_sum_of_commitments(PP, tally.amo_proof, tally.amo_zero_proof,\
+                                        (T0_a[j], T1_a[j]), tally.additional_com, public_seed):
             print(f'autority {a_id} is cheating!')
             return 1
         j += 1
-        zero, x = _extract_authority_result(B0, b1, tally)
-        if _check_zero(zero):
+        zero, x = _extract_authority_result(PP, B0, b1, tally)
+        if _check_zero(PP, zero):
             print(f'autority {a_id} is cheating!')
             return 1
         res += x
-    if _res_to_list_of_candidates(res) != result:
+    if _res_to_list_of_candidates(PP, res) != result:
         print('results are wrong!')
         return 1
     return 0
