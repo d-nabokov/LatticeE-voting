@@ -60,7 +60,8 @@ if __name__ == '__main__':
     f = PP.P(f.list())
     assert(INTT(PP, NTT(PP, f)) == f)
 
-    # TODO: fix fully-splitting NTT
+    # Update powers for different params
+    powers = None
     PP = PublicParams(2, 127, 10)
     R = PP.R
     f = R.random_element()

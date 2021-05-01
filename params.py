@@ -36,10 +36,10 @@ class PublicParams:
         self.baselen = self.lamb + self.kappa + self.commit_len
         self.u = 10
 
-        # really naive bound
-        self.beta1 = Na * self.d
-        self.logdelta1 = Integer(ceil(log(self.d * self.baselen * self.beta1, 2)))
-        self.delta1 = 1 << self.logdelta1
+        self.average_rejection_tries = 3
+        self.sigma1 = 11 * sqrt(self.baselen * self.d * self.Na)
+        self.beta1 = self.sigma1 * sqrt(2 * self.baselen * self.d)
+        self.inf_bound1 = 2**(ceil(log(6 * self.sigma1, 2)))
 
         self.seedlen = 32
 
@@ -48,8 +48,8 @@ class PublicParams:
         p = self.number_of_authority_commitments(Nv_max)
 
         self.sigma2 = 11 * sqrt(self.baselen * self.amo_n * self.d * p)
-        self.average_rejection_tries = 3
-        self.beta2 = 11 * self.baselen * self.d * sqrt(2 * self.amo_n * p)
+        self.beta2 = self.sigma2 * sqrt(2 * self.baselen * self.d)
+        self.inf_bound2 = 2**(ceil(log(6 * self.sigma2, 2)))
 
         self.beta_commit_infty = 1
 
