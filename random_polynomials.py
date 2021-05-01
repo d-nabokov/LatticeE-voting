@@ -147,6 +147,11 @@ def challenge_amo(PP, seed, p):
     return c
 
 
+def discrete_gaussian_vector_y(PP, n, sigma):
+    D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
+    return list(PP.R(list(D() for _ in range(PP.d))) for j in range(n))
+
+
 def discrete_gaussian_y(PP, m, n, sigma):
     D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
     return Matrix(PP.R, m, n, lambda i, j: PP.R(list(D() for _ in range(PP.d))))

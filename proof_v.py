@@ -2,9 +2,9 @@ from Crypto.Hash import SHAKE128
 
 from ring import INTT
 from public import gen_public_b_with_extra
-from utils import poly_to_bytes, randombytes
-from linear_alg import inf_norm, matrix_vector, scalar
-from random_polynomials import challenge, random_poly, random_poly_with_zeros, uniform_poly
+from utils import poly_to_bytes, randombytes, rejection_sampling_vector
+from linear_alg import matrix_vector, scalar, l2_norm_vect
+from random_polynomials import challenge, random_poly, random_poly_with_zeros, discrete_gaussian_vector_y
 
 
 def get_gamma(PP, t0, t1, t2, w):
@@ -36,11 +36,7 @@ def get_challenge(PP, c_hash):
 
 
 def check_z_len(PP, z):
-    border = PP.delta1 - PP.beta1
-    for i in range(PP.baselen):
-        if inf_norm(z[i], PP.q) >= border:
-            return 1
-    return 0
+    return l2_norm_vect(z, PP.q) >= PP.beta1
 
 
 def proof_v(PP, t0, t1, r, m, public_seed):
@@ -48,6 +44,7 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     l = PP.l
     X = PP.X
 
+    global global_try_index
     # try_index = 0
     m_prime = INTT(PP, [1] * PP.Nc + [0] * (l - PP.Nc))
     B0, b = gen_public_b_with_extra(PP, public_seed)
@@ -58,8 +55,9 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     while True:
         # print('iteration', try_index)
         # try_index += 1
+        global_try_index += 1
     
-        y, nonce = uniform_poly(PP, PP.baselen, seed, nonce)
+        y = discrete_gaussian_vector_y(PP, PP.baselen, PP.sigma1)
         w = matrix_vector(B0, y, X, d)
 
         gamma, gamma_hash = get_gamma(PP, t0, t1, t2, w)
@@ -73,9 +71,11 @@ def proof_v(PP, t0, t1, r, m, public_seed):
         c = get_challenge(PP, c_hash)
 
         z = [0] * PP.baselen
+        cr = [0] * PP.baselen
         for i in range(PP.baselen):
-            z[i] = (y[i] + c * r[i]).mod(X**d + 1)
-        if not check_z_len(PP, z):
+            cr[i] = (c * r[i]).mod(X**d + 1)
+            z[i] = (y[i] + cr[i]).mod(X**d + 1)
+        if rejection_sampling_vector(z, cr, PP.sigma1, PP.average_rejection_tries, PP.q):
             break
     return (h, c_hash, z), (t2, t3)
 
@@ -125,27 +125,41 @@ if __name__ == '__main__':
     public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
 
     PP = PublicParams(2, 5, 10)
+    global_try_index = 0
     v = [0] * PP.l
     v[1] = 1
     m = INTT(PP, v)
     B0, b1 = gen_public_b(PP, public_seed)
-    r_seed = randombytes(PP.seedlen)
-    t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
-
-    proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-    ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
-    if ver_result == 0:
-        print('Verify is successfull')
-    else:
-        print('There is an error in verification')
-
-    print('Trying negative scenarios')
-    for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
-        m = INTT(PP, v)
-        B0, b1 = gen_public_b(PP, public_seed)
+    tries = 100
+    for i in range(tries):
         r_seed = randombytes(PP.seedlen)
         t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
 
         proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-        ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
-        assert(ver_result == 1)
+    print(f'average number of tries is {(global_try_index / tries)}')
+
+    # PP = PublicParams(2, 5, 10)
+    # v = [0] * PP.l
+    # v[1] = 1
+    # m = INTT(PP, v)
+    # B0, b1 = gen_public_b(PP, public_seed)
+    # r_seed = randombytes(PP.seedlen)
+    # t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
+
+    # proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
+    # ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
+    # if ver_result == 0:
+    #     print('Verify is successfull')
+    # else:
+    #     print('There is an error in verification')
+
+    # print('Trying negative scenarios')
+    # for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
+    #     m = INTT(PP, v)
+    #     B0, b1 = gen_public_b(PP, public_seed)
+    #     r_seed = randombytes(PP.seedlen)
+    #     t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
+
+    #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
+    #     ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
+    #     assert(ver_result == 1)

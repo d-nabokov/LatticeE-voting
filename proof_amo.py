@@ -2,7 +2,7 @@ from Crypto.Hash import SHAKE128
 from sage.all import *
 
 from public import gen_public_b
-from utils import poly_to_bytes, rejection_sampling, randombytes
+from utils import poly_to_bytes, rejection_sampling_matrix, randombytes
 from linear_alg import matrix_vector, scalar
 from random_polynomials import challenge_amo, random_poly, discrete_gaussian_y, chi_poly
 from commit import commit
@@ -121,7 +121,7 @@ def proof_amo(PP, S, T, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
             break
             
     return (c_hash, Z)
@@ -185,7 +185,7 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
             break
    
     return (c_hash, Z)

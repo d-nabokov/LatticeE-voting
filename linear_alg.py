@@ -35,7 +35,16 @@ def matrix_matrix(A, X):
     return res
 
 
-def scalar_matrix(A, B, q):
+def scalar_vector_zz(a, b, q):
+    n = len(a)
+    res = 0
+    for i in range(n):
+        for coef_a, coef_b in zip(a[i], b[i]):
+            res += signed_zq(coef_a, q) * signed_zq(coef_b, q)
+    return res
+
+
+def scalar_matrix_zz(A, B, q):
     m, n = A.dimensions()
     res = 0
     for i in range(m):
