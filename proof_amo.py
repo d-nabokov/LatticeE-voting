@@ -191,7 +191,7 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
     return (c_hash, Z)
         
         
-def verify_amo_to_zero(proof, T0, T1, p, public_seed):
+def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
     R = PP.R
 
     c_hash, Z = proof

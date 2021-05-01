@@ -5,18 +5,19 @@ from utils import max_with_index
 
 
 def emulate_voting(PP, BB, votes, public_seed):
+    Nv = len(votes)
     print('creating votes')
     for i in range(Nv):
         vote(PP, i, votes[i], public_seed, BB)
     print('creating tallies')
-    for j in range(Na):
-        tally_j(j, public_seed, BB)
+    for j in range(PP.Na):
+        tally_j(PP, j, public_seed, BB)
     print('computing total results')
-    res = tally_all(public_seed, BB)
+    res = tally_all(PP, public_seed, BB)
     winner_votes, winner_index = max_with_index(res)
     print(f'results of voting:\n{res}\nWinner is candidate {winner_index} with {winner_votes} votes')
     
-    ver_result = verify(res, public_seed, BB)
+    ver_result = verify(PP, res, public_seed, BB)
     if ver_result == 0:
         print('Voting is successfull')
     else:
@@ -32,6 +33,7 @@ if __name__ == '__main__':
     assert(Nv <= Nv_max)
 
     votes = [0, 1, 2, 1, 1, 1]
+    assert(len(votes) == Nv)
     CA = {}
     BB = BBoard(CA)
     PP = PublicParams(Na, Nc, Nv_max)

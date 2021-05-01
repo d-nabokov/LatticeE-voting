@@ -9,10 +9,10 @@ from proof_sum import sum_of_commitments, verify_sum_of_commitments
 from voting_classes import Tally, Ballot
 
 
-def _secret_share_value(val, n, d, seed, nonce):
+def _secret_share_value(PP, val, n, seed, nonce):
     x = [0] * n
     for i in range(n - 1):
-        x[i], nonce = random_poly(seed, nonce, d)
+        x[i], nonce = random_poly(PP, seed, nonce, PP.d)
     x[n - 1] = val - sum(x[i] for i in range(n - 1))
     return x, nonce
 
@@ -27,7 +27,7 @@ def vote(PP, v_id, candidate, public_seed, BB):
     
     B0, b1 = gen_public_b(PP, public_seed)
     m = INTT(PP, v)
-    x, _ = _secret_share_value(m, PP.Na, PP.d, seed, 0)
+    x, _ = _secret_share_value(PP, m, PP.Na, seed, 0)
     
     S = []
     T0 = []

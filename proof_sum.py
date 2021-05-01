@@ -114,7 +114,8 @@ if __name__ == '__main__':
     from params import PublicParams
     from proof_amo import gen_random_commitments
     PP = PublicParams(2, 5, 10)
-    S, T0, T1 = gen_random_commitments(PP, public_seed)
+    Nv = 4
+    S, T0, T1 = gen_random_commitments(PP, Nv, public_seed)
     S, T0, T1 = list(S.transpose()), list(T0.transpose()), list(T1)
     amo_proof, amo_zero_proof, T, r = sum_of_commitments(PP, S, T0, T1, public_seed)
     ver_result = verify_sum_of_commitments(PP, amo_proof, amo_zero_proof, (T0, T1), T, public_seed)
