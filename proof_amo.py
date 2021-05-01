@@ -1,7 +1,7 @@
 from Crypto.Hash import SHAKE128
 from sage.all import *
 
-from params import KAPPA, SEEDLEN, BASELEN, d, R, p, N, M, BETA2, sigma
+from params import PP.kappa, PP.seedlen, PP.baselen, d, R, p, N, M, BETA2, sigma
 from public import gen_public_b
 from utils import poly_to_bytes, rejection_sampling, randombytes
 from linear_alg import matrix_vector, scalar
@@ -12,13 +12,13 @@ from ring import signed_zq
 
 def get_challenge_hash_amo(T, W, p):
     shake = SHAKE128.new()
-    for i in range(KAPPA):
+    for i in range(PP.kappa):
         for j in range(p):
             shake.update(poly_to_bytes(T[i][j]))    
-    for i in range(KAPPA):
+    for i in range(PP.kappa):
         for j in range(N):
             shake.update(poly_to_bytes(W[i][j]))
-    c_hash = shake.read(int(SEEDLEN))
+    c_hash = shake.read(int(PP.seedlen))
     return c_hash
 
 
@@ -35,9 +35,9 @@ def get_challenge_amo(c_hash, p):
 
 
 # def proof_amo_infty(S, T, public_seed):
-#     B0, b1 = gen_public_b(public_seed)
+#     B0, b1 = gen_public_b(PP, public_seed)
 #     try_index = 0
-#     seed = randombytes(SEEDLEN)
+#     seed = randombytes(PP.seedlen)
 #     nonce = 0
 #     while True:
 #         print('iteration', try_index)
@@ -45,8 +45,8 @@ def get_challenge_amo(c_hash, p):
     
 #         Y = []
 #         for i in range(N):
-#             Y.append(uniform_poly(BASELEN, seed, nonce))
-#             nonce += BASELEN
+#             Y.append(uniform_poly(PP.baselen, seed, nonce))
+#             nonce += PP.baselen
 #         Y = Matrix(R, Y).transpose()
 #         W = Matrix(R, B0) * Y
         
@@ -64,7 +64,7 @@ def get_challenge_amo(c_hash, p):
         
 # def verify_amo_infty(proof, T, public_seed):
 #     C, Z = proof
-#     B0, b1 = gen_public_b(public_seed)
+#     B0, b1 = gen_public_b(PP, public_seed)
     
 #     if check_Z_len(Z):
 #         print('check_Z_len')
@@ -93,24 +93,24 @@ def check_Z_len(Z):
 
 
 def gen_randomness_matrix(p):
-    r_seed = randombytes(SEEDLEN)
+    r_seed = randombytes(PP.seedlen)
     S = []
     for i in range(p):
-        r = chi_poly(BASELEN, r_seed, i)
+        r = chi_poly(PP.baselen, r_seed, i)
         S.append(r)
     return Matrix(R, S).transpose()
 
 
 def proof_amo(S, T, p, public_seed):
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     try_index = 0
-#     seed = randombytes(SEEDLEN)
+#     seed = randombytes(PP.seedlen)
 #     nonce = 0
     while True:
         print('iteration', try_index)
         try_index += 1
     
-        Y = discrete_gaussian_y(BASELEN, N)
+        Y = discrete_gaussian_y(PP.baselen, N)
         W = Matrix(R, B0) * Y
         
         c_hash = get_challenge_hash_amo(T, W, p)
@@ -128,7 +128,7 @@ def verify_amo(proof, T, p, public_seed):
     c_hash, Z = proof
     C = get_challenge_amo(c_hash, p)
     C = Matrix(R, C)
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     
     if check_Z_len(Z):
         print('check_Z_len')
@@ -144,17 +144,17 @@ def verify_amo(proof, T, p, public_seed):
 
 def get_challenge_hash_amo_to_zero(T0, T1, W0, W1, p):
     shake = SHAKE128.new()
-    for i in range(KAPPA):
+    for i in range(PP.kappa):
         for j in range(p):
             shake.update(poly_to_bytes(T0[i][j]))
     for i in range(p):
         shake.update(poly_to_bytes(T1[i]))
-    for i in range(KAPPA):
+    for i in range(PP.kappa):
         for j in range(N):
             shake.update(poly_to_bytes(W0[i][j]))
     for i in range(N):
         shake.update(poly_to_bytes(W1[i]))
-    c_hash = shake.read(int(SEEDLEN))
+    c_hash = shake.read(int(PP.seedlen))
     return c_hash
 
 
@@ -163,13 +163,13 @@ def get_challenge_amo_to_zero(c_hash, p):
 
 
 def proof_amo_to_zero(S, T0, T1, p, public_seed):
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     try_index = 0
     while True:
         print('iteration', try_index)
         try_index += 1
     
-        Y = discrete_gaussian_y(BASELEN, N)
+        Y = discrete_gaussian_y(PP.baselen, N)
         W0 = Matrix(R, B0) * Y
         W1 = vector(R, b1) * Y
         
@@ -188,7 +188,7 @@ def verify_amo_to_zero(proof, T0, T1, p, public_seed):
     c_hash, Z = proof
     C = get_challenge_amo_to_zero(c_hash, p)
     C = Matrix(R, C)
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     
     if check_Z_len(Z):
         print('check_Z_len')
@@ -205,10 +205,10 @@ def verify_amo_to_zero(proof, T0, T1, p, public_seed):
 
 
 def gen_random_commitments(p, public_seed):
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     
-    r_seed = randombytes(SEEDLEN)
-    seed = randombytes(SEEDLEN)
+    r_seed = randombytes(PP.seedlen)
+    seed = randombytes(PP.seedlen)
     S = []
     T0 = []
     T1 = []
@@ -223,7 +223,7 @@ def gen_random_commitments(p, public_seed):
 
 
 if __name__ == '__main__':
-    print(randombytes(SEEDLEN))
+    print(randombytes(PP.seedlen))
     public_seed = b'\xf3\xe0\xf0\n\x17\x02\xd3\xee\xd3\xbd{D\xff\x19\xf5b\x98\xca\xdf\xc0M\xe8\x12\xbe\xc3\xc4a1\xd6\xe1\xf2\xba'
 
     S, T0, T1 = gen_random_commitments(p, public_seed)

@@ -13,10 +13,10 @@ def randombytes(l):
     return urandom(l)
 
 
-def rejection_sampling(Z, B, sigma, M):
+def rejection_sampling(Z, B, sigma, M, q):
     u = random_prob()
-    scalar = scalar_matrix(Z, B)
-    norm = l2_norm_matr(B)**2
+    scalar = scalar_matrix(Z, B, q)
+    norm = l2_norm_matr(B, q)**2
     border = 1 / M * e**((-2*scalar + norm) / (2 * sigma**2))
     if u > border:
         return 0

@@ -1,6 +1,6 @@
 from sage.all import *
 
-from params import KAPPA, SEEDLEN, BASELEN, R
+from params import PP.kappa, PP.seedlen, PP.baselen, R
 from public import gen_public_b
 from proof_amo import proof_amo, proof_amo_to_zero, verify_amo, verify_amo_to_zero
 from linear_alg import scalar
@@ -13,7 +13,7 @@ def sum_of_commitments(S, T0, T1, u, public_seed):
     p = len(S)
     max_layers = ceil(log(p, u))
     
-    B0, b1 = gen_public_b(public_seed)
+    B0, b1 = gen_public_b(PP, public_seed)
     X = list(T1[i] - scalar(b1, S[i]) for i in range(p))
     
     S_amo = []
@@ -26,7 +26,7 @@ def sum_of_commitments(S, T0, T1, u, public_seed):
         S_amo.append(S[i])
         T0_amo.append(T0[i])
         T1_amo.append(T1[i])
-    r_seed = randombytes(SEEDLEN)
+    r_seed = randombytes(PP.seedlen)
     nonce = 0
     max_index = p
     offset = 0
@@ -39,9 +39,9 @@ def sum_of_commitments(S, T0, T1, u, public_seed):
             X[b] = m
             t0, t1, r, nonce = commit(B0, b1, m, r_seed, nonce)
             
-            t0_prime = list(t0[i] - sum(T0_amo[j + offset][i] for j in range(start, end)) for i in range(KAPPA))
+            t0_prime = list(t0[i] - sum(T0_amo[j + offset][i] for j in range(start, end)) for i in range(PP.kappa))
             t1_prime = t1 - sum(T1_amo[j + offset] for j in range(start, end))
-            r_prime = list(r[i] - sum(S_amo[j + offset][i] for j in range(start, end)) for i in range(BASELEN))
+            r_prime = list(r[i] - sum(S_amo[j + offset][i] for j in range(start, end)) for i in range(PP.baselen))
             
             T0_amo.append(t0)
             T1_amo.append(t1)
@@ -84,7 +84,7 @@ def verify_sum_of_commitments(amo_proof, amo_zero_proof, T_orig, T, u, public_se
             t0 = T0[offset_blocks + b]
             t1 = T1[offset_blocks + b]
             
-            t0_prime = list(t0[i] - sum(T0_amo[j + offset][i] for j in range(start, end)) for i in range(KAPPA))
+            t0_prime = list(t0[i] - sum(T0_amo[j + offset][i] for j in range(start, end)) for i in range(PP.kappa))
             t1_prime = t1 - sum(T1_amo[j + offset] for j in range(start, end))
             
             T0_amo_zero.append(t0_prime)

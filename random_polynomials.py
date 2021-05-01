@@ -2,14 +2,12 @@ from Crypto.Hash import SHAKE128
 from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianDistributionIntegerSampler
 from sage.all import *
 
-from params import d, LOGDELTA1, DELTA1, q, q_bits, P, R, X, sigma
+
+def random_poly(PP, seed, nonce, degree):
+    return random_poly_with_zeros(PP, seed, nonce, degree, 0)
 
 
-def random_poly(seed, nonce, degree):
-    return random_poly_with_zeros(seed, nonce, degree, 0)
-
-
-def random_poly_with_zeros(seed, nonce, degree, zeros):
+def random_poly_with_zeros(PP, seed, nonce, degree, zeros):
     shake = SHAKE128.new()
     shake.update(int(nonce).to_bytes(8, byteorder='big'))
     shake.update(seed)
@@ -23,24 +21,24 @@ def random_poly_with_zeros(seed, nonce, degree, zeros):
             rnd_cnt += 1
         else:
             r = int.from_bytes(shake.read(int(4)), byteorder='big')
-        r = r & ((1 << q_bits) - 1)
-        if r >= q:
+        r = r & ((1 << PP.q_bits) - 1)
+        if r >= PP.q:
             continue
         else:
             lst[i] = r
             i += 1
-    return P(lst), nonce + 1
+    return PP.P(lst), nonce + 1
 
 
 def _chi_map(c):
     return c - (3 & -(c >> 1))
 
 
-def _chi_poly_single(seed, nonce):
+def _chi_poly_single(PP, seed, nonce):
     shake = SHAKE128.new()
     shake.update(int(nonce).to_bytes(8, byteorder='big'))
     shake.update(seed)
-    samples_len = d
+    samples_len = PP.d
     rnd = shake.read(int(samples_len * 4 // 8))
     
     arr = [0]*(samples_len)
@@ -53,18 +51,20 @@ def _chi_poly_single(seed, nonce):
                 r >>= 1
             c = (a[0] + a[1] - a[2] - a[3]) % 3
             arr[i * 2 + j] = _chi_map(c)
-    return P(arr), nonce + 1
+    return PP.P(arr), nonce + 1
 
     
-def chi_poly(n, seed, nonce):
+def chi_poly(PP, n, seed, nonce):
     res = []
     for i in range(n):
-        p, nonce = _chi_poly_single(seed, nonce)
+        p, nonce = _chi_poly_single(PP, seed, nonce)
         res.append(p)
     return res, nonce
 
 
-def challenge(seed):
+def challenge(PP, seed):
+    d = PP.d
+
     shake = SHAKE128.new()
     shake.update(seed)
     rnd = shake.read(int(d * 2 // 8))
@@ -79,16 +79,18 @@ def challenge(seed):
                 r >>= 1
             c = a[0] - a[1]
             arr[i * 4 + j] = c
-    return P(arr)
+    return PP.P(arr)
 
 
-def _uniform_poly_single(seed, nonce):
+def _uniform_poly_single(PP, seed, nonce):
+    d = PP.d
+
     shake = SHAKE128.new()
     shake.update(int(nonce).to_bytes(8, byteorder='big'))
     shake.update(seed)
     # absolutely not effective
-    deltabytes = (LOGDELTA1 + 1 + 7) // 8
-    assert(LOGDELTA1 + 1 <= deltabytes * 8)
+    deltabytes = (PP.logdelta1 + 1 + 7) // 8
+    assert(PP.logdelta1 + 1 <= deltabytes * 8)
     rnd = shake.read(int(deltabytes * d))
 
     samples_len = d
@@ -101,17 +103,17 @@ def _uniform_poly_single(seed, nonce):
             rnd_offset += deltabytes
         else:
             r = int.from_bytes(shake.read(int(deltabytes)), byteorder='big')
-        r = (r & ((DELTA1 << 1) - 1)) - DELTA1
-        if r != -DELTA1:
+        r = (r & ((PP.delta1 << 1) - 1)) - PP.delta1
+        if r != -PP.delta1:
             arr[i] = r
             i += 1
-    return P(arr), nonce + 1
+    return PP.P(arr), nonce + 1
 
 
-def uniform_poly(n, seed, nonce):
+def uniform_poly(PP, n, seed, nonce):
     res = []
     for i in range(n):
-        p, nonce = _uniform_poly_single(seed, nonce)
+        p, nonce = _uniform_poly_single(PP, seed, nonce)
         res.append(p)
     return res, nonce
 
@@ -145,8 +147,6 @@ def challenge_amo(seed, p, N):
     return c
 
 
-def discrete_gaussian_y(m, n):
+def discrete_gaussian_y(m, n, R, sigma):
+    D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
     return Matrix(R, m, n, lambda i, j: R(list(D() for _ in range(d))))
-
-
-D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
