@@ -106,12 +106,14 @@ def proof_amo(PP, S, T, p, public_seed):
     R = PP.R
 
     B0, b1 = gen_public_b(PP, public_seed)
+    global global_try_index1
     # try_index = 0
 #     seed = randombytes(PP.seedlen)
 #     nonce = 0
     while True:
         # print('iteration', try_index)
         # try_index += 1
+        global_try_index1 += 1
     
         Y = discrete_gaussian_y(PP, PP.baselen, PP.amo_n, PP.sigma2)
         W = Matrix(R, B0) * Y
@@ -172,10 +174,12 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
     R = PP.R
 
     B0, b1 = gen_public_b(PP, public_seed)
+    global global_try_index2
     # try_index = 0
     while True:
         # print('iteration', try_index)
         # try_index += 1
+        global_try_index2 += 1
     
         Y = discrete_gaussian_y(PP, PP.baselen, PP.amo_n, PP.sigma2)
         W0 = Matrix(R, B0) * Y
@@ -248,35 +252,36 @@ if __name__ == '__main__':
     public_seed = b'\xf3\xe0\xf0\n\x17\x02\xd3\xee\xd3\xbd{D\xff\x19\xf5b\x98\xca\xdf\xc0M\xe8\x12\xbe\xc3\xc4a1\xd6\xe1\xf2\xba'
 
     # TODO: remove index and code for average tries
-    # global_try_index1 = 0
-    # global_try_index2 = 0
-    # PP = PublicParams(2, 5, 10)
-    # tries = 100
-    # Nv = 7
-    # p = PP.number_of_authority_commitments(Nv)
-    # for i in range(tries):
-    #     print(f'i = {i}')
-    #     S, T0, T1 = gen_random_commitments(PP, p, public_seed)
-    #     proof = proof_amo(PP, S, T0, p, public_seed)
-    #     amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
-    # print(f'average number of tries for amo proof is {(global_try_index1 / tries)}')
-    # print(f'average number of tries for amo proof to zero is {(global_try_index2 / tries)}')
-    
-
+    global_try_index1 = 0
+    global_try_index2 = 0
     PP = PublicParams(2, 5, 10)
+    tries = 100
     Nv = 7
     p = PP.number_of_authority_commitments(Nv)
-    S, T0, T1 = gen_random_commitments(PP, p, public_seed)
-    proof = proof_amo(PP, S, T0, p, public_seed)
-    ver_result = verify_amo(PP, proof, T0, p, public_seed)
-    if ver_result == 0:
-        print('Verify amo is successfull')
-    else:
-        print('There is an error in verification amo')
-    S, T0, T1 = gen_random_commitments_to_zero(PP, p - Nv, public_seed)
-    amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
-    ver_result_zero = verify_amo_to_zero(PP, amo_zero_proof, T0, T1, len(T1), public_seed)
-    if ver_result_zero == 0:
-        print('Verify amo to zero is successfull')
-    else:
-        print('There is an error in verification amo to zero')
+    for i in range(tries):
+        print(f'i = {i}')
+        S, T0, T1 = gen_random_commitments(PP, p, public_seed)
+        proof = proof_amo(PP, S, T0, p, public_seed)
+        S, T0, T1 = gen_random_commitments_to_zero(PP, p - Nv, public_seed)
+        amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
+    print(f'average number of tries for amo proof is {(global_try_index1 / tries)}')
+    print(f'average number of tries for amo proof to zero is {(global_try_index2 / tries)}')
+    
+
+    # PP = PublicParams(2, 5, 10)
+    # Nv = 7
+    # p = PP.number_of_authority_commitments(Nv)
+    # S, T0, T1 = gen_random_commitments(PP, p, public_seed)
+    # proof = proof_amo(PP, S, T0, p, public_seed)
+    # ver_result = verify_amo(PP, proof, T0, p, public_seed)
+    # if ver_result == 0:
+    #     print('Verify amo is successfull')
+    # else:
+    #     print('There is an error in verification amo')
+    # S, T0, T1 = gen_random_commitments_to_zero(PP, p - Nv, public_seed)
+    # amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
+    # ver_result_zero = verify_amo_to_zero(PP, amo_zero_proof, T0, T1, len(T1), public_seed)
+    # if ver_result_zero == 0:
+    #     print('Verify amo to zero is successfull')
+    # else:
+    #     print('There is an error in verification amo to zero')
