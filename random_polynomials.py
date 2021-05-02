@@ -3,6 +3,13 @@ from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianD
 from sage.all import *
 
 
+def random_zq(PP, seed, nonce, n):
+    assert(n <= PP.d)
+    tmp, nonce = random_poly(PP, seed, nonce, n)
+    tmplist = tmp.list()
+    return list(Integer(tmplist[i]) for i in range(n)), nonce
+
+
 def random_poly(PP, seed, nonce, degree):
     return random_poly_with_zeros(PP, seed, nonce, degree, 0)
 

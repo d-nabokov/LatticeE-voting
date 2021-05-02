@@ -9,10 +9,12 @@ class PublicParams:
         if Nc <= 32:
             self.l = 32
             self.k = 1
+            self.g_zeros = self.d // self.l
         else:
             self.l = 128
             self.k = 4
-        self.npolies = ceil(Nc / 128)
+            self.g_zeros = self.k
+        self.npoly = ceil(Nc / 128)
         if self.l == 32:
             self.q = 1071646529
             self.q_bits = 30
@@ -32,7 +34,7 @@ class PublicParams:
 
         self.lamb = 10
         self.kappa = 10
-        self.commit_len = self.npolies + 2
+        self.commit_len = self.npoly + 2
         self.baselen = self.lamb + self.kappa + self.commit_len
         self.u = 10
 

@@ -3,6 +3,10 @@ from sage.all import *
 from ring import signed_zq
 
 
+def vector_mult_by_scalar(vect, s):
+    return list(vect[i] * s for i in range(len(vect)))
+
+
 def scalar(a, b, X, d):
     res = 0
     for i in range(len(a)):
