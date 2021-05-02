@@ -3,7 +3,7 @@ from Crypto.Hash import SHAKE128
 from ring import INTT
 from public import gen_public_b_with_extra
 from utils import poly_to_bytes, randombytes, rejection_sampling_vector
-from linear_alg import matrix_vector, scalar, l2_norm_vect, vector_mult_by_scalar
+from linear_alg import matrix_vector, scalar, l2_norm_vect, vector_mult_by_scalar, inf_norm_matr
 from random_polynomials import challenge, random_poly, random_poly_with_zeros, random_zq, discrete_gaussian_vector_y
 from automorphism import phi
 
@@ -64,7 +64,7 @@ def _compute_single_z(PP, y, c, r):
     for i in range(PP.baselen):
         cr[i] = (c * r[i]).mod(PP.X**PP.d + 1)
         z[i] = (y[i] + cr[i]).mod(PP.X**PP.d + 1)
-    if rejection_sampling_vector(z, cr, PP.sigma1, PP.average_rejection_tries, PP.q):
+    if rejection_sampling_vector(z, cr, PP.sigma1, PP.average_rejection_tries1, PP.q) == 0:
         return None, 1
     return z, 0
 
@@ -149,8 +149,7 @@ def proof_v(PP, t0, t1, r, m, public_seed):
         c = get_challenge(PP, c_hash)
 
         Z, res_ok = _compute_z(PP, Y, c, r)
-        # TODO: check inf_norm Z
-        if res_ok == 0:
+        if res_ok == 0 and inf_norm_matr(Z, PP.q) < PP.inf_bound1:
             break
     return (h, c_hash, Z), (t2, t3)
 
@@ -243,41 +242,42 @@ if __name__ == '__main__':
 
     global_try_index = 0
 
-    # PP = PublicParams(2, 5, 10)
-    # v = [0] * PP.l
-    # v[1] = 1
-    # m = INTT(PP, v)
-    # B0, b1 = gen_public_b(PP, public_seed)
-    # tries = 100
-    # for i in range(tries):
-    #     r_seed = randombytes(PP.seedlen)
-    #     t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
-
-    #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-    # print(f'average number of tries is {(global_try_index / tries)}')
-
     PP = PublicParams(2, 127, 10)
     v = [0] * PP.l
     v[1] = 1
     m = INTT(PP, v)
     B0, b1 = gen_public_b(PP, public_seed)
-    r_seed = randombytes(PP.seedlen)
-    t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
-
-    proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-    ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
-    if ver_result == 0:
-        print('Verify is successfull')
-    else:
-        print('There is an error in verification')
-
-    print('Trying negative scenarios')
-    for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
-        m = INTT(PP, v)
-        B0, b1 = gen_public_b(PP, public_seed)
+    tries = 100
+    for i in range(tries):
+        print(f'i = {i}')
         r_seed = randombytes(PP.seedlen)
         t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
 
         proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-        ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
-        assert(ver_result == 1)
+    print(f'average number of tries is {(global_try_index / tries)}')
+
+    # PP = PublicParams(2, 127, 10)
+    # v = [0] * PP.l
+    # v[1] = 1
+    # m = INTT(PP, v)
+    # B0, b1 = gen_public_b(PP, public_seed)
+    # r_seed = randombytes(PP.seedlen)
+    # t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
+
+    # proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
+    # ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
+    # if ver_result == 0:
+    #     print('Verify is successfull')
+    # else:
+    #     print('There is an error in verification')
+
+    # print('Trying negative scenarios')
+    # for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
+    #     m = INTT(PP, v)
+    #     B0, b1 = gen_public_b(PP, public_seed)
+    #     r_seed = randombytes(PP.seedlen)
+    #     t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
+
+    #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
+    #     ver_result = verify_v(PP, proof, (t0, t1), additional_com, public_seed)
+    #     assert(ver_result == 1)

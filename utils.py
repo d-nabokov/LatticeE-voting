@@ -22,12 +22,14 @@ def _rejection_sampling(scalar, norm, sigma, M):
         return 1
 
 
+# returns 1, if Z is independent from B
 def rejection_sampling_matrix(Z, B, sigma, M, q):
     scalar = scalar_matrix_zz(Z, B, q)
     norm = l2_norm_matr(B, q)**2
     return _rejection_sampling(scalar, norm, sigma, M)
 
 
+# returns 1, if z is independent from cr
 def rejection_sampling_vector(z, cr, sigma, M, q):
     scalar = scalar_vector_zz(z, cr, q)
     norm = l2_norm_vect(cr, q)**2

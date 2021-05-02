@@ -121,7 +121,7 @@ def proof_amo(PP, S, T, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q):
             break
             
     return (c_hash, Z)
@@ -185,7 +185,7 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q):
             break
    
     return (c_hash, Z)
