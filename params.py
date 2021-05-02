@@ -38,8 +38,9 @@ class PublicParams:
         self.baselen = self.lamb + self.kappa + self.commit_len
         self.u = 10
 
-        self.average_rejection_tries1 = 3**(1 / self.k)
-        self.sigma1 = 11 * self.k * sqrt(self.baselen * self.d * self.Na)
+        alpha = 11 * self.k
+        self.average_rejection_tries1 = e**(12 / alpha + 1 / (2 * alpha**2))
+        self.sigma1 = alpha * sqrt(self.baselen * self.d * self.Na)
         self.beta1 = self.sigma1 * sqrt(2 * self.baselen * self.d)
         self.inf_bound1 = 2**(ceil(log(6 * self.sigma1, 2))) - 1
 
