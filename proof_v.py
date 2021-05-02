@@ -137,12 +137,6 @@ def proof_v(PP, t0, t1, r, m, public_seed):
                         coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[0], d * gamma[mu]), Y[(i - nu) % k], X, d), nu)
                     vulp[i] += (coef * coef_inner).mod(X**d + 1)
                 vulp[i] += scalar(b[1], Y[i], X, d)
-            # TODO: 
-            assert(t3 == t3.mod(X**d + 1))
-            assert(vpp == vpp.mod(X**d + 1))
-            assert(h == h.mod(X**d + 1))
-            for i in range(k):
-                assert(vulp[i] == vulp[i].mod(X**d + 1))
             
 
         c_hash = get_challenge_hash(PP, ag_hash, t3, vpp, h, vulp)
@@ -183,8 +177,6 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
         f2[i] = (scalar(b[0], Z[i], X, d) - c * (t1 - m_prime)).mod(X**d + 1)
         if k != 1:
             c = phi(PP, c, 1)
-    # TODO:
-    assert(c == get_challenge(PP, c_hash))
     
     f3 = (scalar(b[2], Z[0], X, d) - c * t3).mod(X**d + 1)
     hlist = h.list()
@@ -221,11 +213,6 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
             vulp[i] += scalar(b[1], Z[i], X, d)
             vulp[i] -= (c * (tau + t2 - h)).mod(X**d + 1)
             c = phi(PP, c, 1)
-        # TODO:
-        assert(vpp == vpp.mod(X**d + 1))
-        assert(tau == tau.mod(X**d + 1))
-        for i in range(k):
-            assert(vulp[i] == vulp[i].mod(X**d + 1))
 
     c_hash_prime = get_challenge_hash(PP, ag_hash, t3, vpp, h, vulp)
     if c_hash != c_hash_prime:
