@@ -3,7 +3,7 @@ from sage.all import *
 
 from public import gen_public_b
 from utils import poly_to_bytes, rejection_sampling_matrix, randombytes
-from linear_alg import matrix_vector, scalar
+from linear_alg import matrix_vector, scalar, inf_norm_matr
 from random_polynomials import challenge_amo, random_poly, discrete_gaussian_y, chi_poly
 from commit import commit
 from ring import signed_zq
@@ -121,7 +121,8 @@ def proof_amo(PP, S, T, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q) \
+            and inf_norm_matr(Z, PP.q) < PP.inf_bound2:
             break
             
     return (c_hash, Z)
@@ -185,7 +186,8 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
         C = Matrix(R, C)
         SC = S * C
         Z = Y + SC
-        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q):
+        if rejection_sampling_matrix(Z, SC, PP.sigma2, PP.average_rejection_tries2, PP.q) \
+            and inf_norm_matr(Z, PP.q) < PP.inf_bound2:
             break
    
     return (c_hash, Z)
@@ -213,7 +215,7 @@ def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
     return 0
 
 
-def gen_random_commitments(PP, p, public_seed):
+def _gen_random_commitments_impl(PP, p, public_seed, m_func):
     R = PP.R
 
     B0, b1 = gen_public_b(PP, public_seed)
@@ -225,7 +227,7 @@ def gen_random_commitments(PP, p, public_seed):
     T1 = []
     nonce = 0
     for i in range(p):
-        xi, nonce = random_poly(PP, seed, nonce, PP.d)
+        xi, nonce = m_func(PP, seed, nonce, PP.d)
         t0, t1, r, nonce = commit(PP, B0, b1, xi, r_seed, nonce)
         S.append(r)
         T0.append(t0)
@@ -233,17 +235,48 @@ def gen_random_commitments(PP, p, public_seed):
     return Matrix(R, S).transpose(), Matrix(R, T0).transpose(), vector(R, T1)
 
 
+def gen_random_commitments(PP, p, public_seed):
+    return _gen_random_commitments_impl(PP, p, public_seed, random_poly)
+
+
+def gen_random_commitments_to_zero(PP, p, public_seed):
+    return _gen_random_commitments_impl(PP, p, public_seed, lambda a, b, c, d: (0, 0))
+
+
 if __name__ == '__main__':
     from params import PublicParams
-    PP = PublicParams(2, 5, 10)
     public_seed = b'\xf3\xe0\xf0\n\x17\x02\xd3\xee\xd3\xbd{D\xff\x19\xf5b\x98\xca\xdf\xc0M\xe8\x12\xbe\xc3\xc4a1\xd6\xe1\xf2\xba'
 
+    # TODO: remove index and code for average tries
+    # global_try_index1 = 0
+    # global_try_index2 = 0
+    # PP = PublicParams(2, 5, 10)
+    # tries = 100
+    # Nv = 7
+    # p = PP.number_of_authority_commitments(Nv)
+    # for i in range(tries):
+    #     print(f'i = {i}')
+    #     S, T0, T1 = gen_random_commitments(PP, p, public_seed)
+    #     proof = proof_amo(PP, S, T0, p, public_seed)
+    #     amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
+    # print(f'average number of tries for amo proof is {(global_try_index1 / tries)}')
+    # print(f'average number of tries for amo proof to zero is {(global_try_index2 / tries)}')
+    
+
+    PP = PublicParams(2, 5, 10)
     Nv = 7
     p = PP.number_of_authority_commitments(Nv)
     S, T0, T1 = gen_random_commitments(PP, p, public_seed)
     proof = proof_amo(PP, S, T0, p, public_seed)
     ver_result = verify_amo(PP, proof, T0, p, public_seed)
     if ver_result == 0:
-        print('Verify is successfull')
+        print('Verify amo is successfull')
     else:
-        print('There is an error in verification')
+        print('There is an error in verification amo')
+    S, T0, T1 = gen_random_commitments_to_zero(PP, p - Nv, public_seed)
+    amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
+    ver_result_zero = verify_amo_to_zero(PP, amo_zero_proof, T0, T1, len(T1), public_seed)
+    if ver_result_zero == 0:
+        print('Verify amo to zero is successfull')
+    else:
+        print('There is an error in verification amo to zero')

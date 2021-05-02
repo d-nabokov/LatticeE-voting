@@ -227,8 +227,8 @@ if __name__ == '__main__':
     from public import gen_public_b
     public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
 
+    # TODO: remove index and code for average tries
     global_try_index = 0
-
     PP = PublicParams(2, 127, 10)
     v = [0] * PP.l
     v[1] = 1
