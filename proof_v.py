@@ -98,8 +98,6 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     k = PP.k
     npoly = PP.npoly
 
-    # global global_try_index
-    # try_index = 0
     m_prime = _compute_m_prime(PP)
     B0, b = gen_public_b_with_extra(PP, public_seed)
     seed = randombytes(PP.seedlen)
@@ -107,10 +105,6 @@ def proof_v(PP, t0, t1, r, m, public_seed):
     g, nonce = random_poly_with_zeros(PP, seed, nonce, d, PP.g_zeros)
     t2 = scalar(b[npoly], r, X, d) + g
     while True:
-        # print('iteration', try_index)
-        # try_index += 1
-        # global_try_index += 1
-    
         Y = [0] * k
         W = [0] * k
         for i in range(PP.k):
@@ -176,7 +170,6 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     t0, t1 = commitment
     t2, t3 = additional_com
     if check_z_len(PP, Z):
-        # print('check_z_len')
         return 1
     W = [0] * k
     f1 = [0] * k
@@ -197,7 +190,6 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     hlist = h.list()
     for i in range(PP.g_zeros):
         if hlist[i] != 0:
-            # print('h not 0')
             return 1
     if k == 1:
         # PP.npoly should be 1
@@ -234,7 +226,6 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
 
     c_hash_prime = get_challenge_hash(PP, ag_hash, t3, vpp, h, vulp)
     if c_hash != c_hash_prime:
-        # print('c != c_prime')
         return 1
     return 0
 
@@ -245,22 +236,6 @@ if __name__ == '__main__':
     from public import gen_public_b
     from utils import m_from_vote_arr
     public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
-
-    # TODO: remove index and code for average tries
-    # global_try_index = 0
-    # PP = PublicParams(2, 127, 10)
-    # v = [0] * PP.l
-    # v[1] = 1
-    # m = INTT(PP, v)
-    # B0, b1 = gen_public_b(PP, public_seed)
-    # tries = 100
-    # for i in range(tries):
-    #     print(f'i = {i}')
-    #     r_seed = randombytes(PP.seedlen)
-    #     t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
-
-    #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
-    # print(f'average number of tries is {(global_try_index / tries)}')
 
     PP = PublicParams(2, 129, 10)
     v = [0] * PP.Nc
