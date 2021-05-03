@@ -8,6 +8,7 @@ def emulate_voting(PP, BB, votes, public_seed):
     Nv = len(votes)
     print('creating votes')
     for i in range(Nv):
+        print(f'voter {i} casting {votes[i]}')
         vote(PP, i, votes[i], public_seed, BB)
     print('creating tallies')
     for j in range(PP.Na):
@@ -32,7 +33,14 @@ if __name__ == '__main__':
     Nv = 6
     assert(Nv <= Nv_max)
 
-    votes = [0, 1, 2, 1, 1, 1]
+    votes = [
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+    ]
     assert(len(votes) == Nv)
     CA = {}
     BB = BBoard(CA)

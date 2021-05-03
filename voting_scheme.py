@@ -10,23 +10,28 @@ from voting_classes import Tally, Ballot
 
 
 def _secret_share_value(PP, val, n, seed, nonce):
-    x = [0] * n
-    for i in range(n - 1):
-        x[i], nonce = random_poly(PP, seed, nonce, PP.d)
-    x[n - 1] = val - sum(x[i] for i in range(n - 1))
-    return x, nonce
+    res = []
+    for j in range(PP.npoly):
+        x = [0] * n
+        for i in range(n - 1):
+            x[i], nonce = random_poly(PP, seed, nonce, PP.d)
+        x[n - 1] = val[j] - sum(x[i] for i in range(n - 1))
+        res.append(x)
+    return res, nonce
 
 
-def vote(PP, v_id, candidate, public_seed, BB):
-    assert(candidate >= 0 and candidate < PP.Nc)
-    v = [0] * PP.l
-    v[candidate] = 1
+def vote(PP, v_id, vote_arr, public_seed, BB):
+    assert(len(vote_arr) == PP.Nc)
+    vlen = PP.npoly * PP.l
+    v = vote_arr + [0] * (vlen - PP.Nc)
     seed = randombytes(PP.seedlen)
     r_seed = randombytes(PP.seedlen)
     nonce = 0
     
     B0, b1 = gen_public_b(PP, public_seed)
-    m = INTT(PP, v)
+    m = [0] * PP.npoly
+    for i in range(PP.npoly):
+        m.append(INTT(PP, v[i * PP.l : (i + 1) * PP.l]))
     x, _ = _secret_share_value(PP, m, PP.Na, seed, 0)
     
     S = []

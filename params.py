@@ -14,7 +14,7 @@ class PublicParams:
             self.l = 128
             self.k = 4
             self.g_zeros = self.k
-        self.npoly = ceil(Nc / 128)
+        self.npoly = ceil(Nc / self.d)
         if self.l == 32:
             self.q = 1071646529
             self.q_bits = 30
