@@ -2,7 +2,7 @@ from sage.misc.prandom import random as random_prob
 from sage.all import *
 
 from linear_alg import scalar_matrix_zz, scalar_vector_zz, l2_norm_matr, l2_norm_vect
-from ring import INTT
+from ring import INTT, reset_powers
 from os import urandom
 
 
@@ -52,3 +52,9 @@ def m_from_vote_arr(PP, vote_arr):
     v = vote_arr + [0] * (vlen - PP.Nc)
 
     return list(INTT(PP, v[i * PP.l : (i + 1) * PP.l]) for i in range(PP.npoly))
+
+
+# We need to reset variables when changing public parameters
+# variable `powers` is computed only once in order to speed up NTT/INTT
+def reset_all():
+    reset_powers()

@@ -49,6 +49,11 @@ def signed_zq(v, q):
     return v
 
 
+def reset_powers():
+    global powers
+    powers = None
+
+
 powers = None
 
 

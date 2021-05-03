@@ -114,7 +114,6 @@ if __name__ == '__main__':
     public_seed = b'\xa3\xe4\xf3\xf9Gl\xb69\xe2\xff~\x02\x087I\x18\x9a\x08\x88\x15\xe1\x83\x02\x7fP\xd2\x13-\xa1\xb5.\x88'
     from params import PublicParams
     from proof_amo import gen_random_commitments
-    # TODO: npoly
     PP = PublicParams(2, 5, 10)
     Nv = 4
     S, T0, T1 = gen_random_commitments(PP, Nv, public_seed)
