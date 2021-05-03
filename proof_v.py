@@ -14,7 +14,8 @@ def get_alpha_gamma(PP, t0, t1, t2, W):
     shake = SHAKE128.new()
     for i in range(PP.kappa):
         shake.update(poly_to_bytes(t0[i]))
-    shake.update(poly_to_bytes(t1))
+    for i in range(PP.npoly):
+        shake.update(poly_to_bytes(t1[i]))
     shake.update(poly_to_bytes(t2))
     for i in range(k):
         for j in range(PP.kappa):
@@ -25,8 +26,8 @@ def get_alpha_gamma(PP, t0, t1, t2, W):
         gamma, _ = random_poly(PP, ag_hash, nonce, PP.d//PP.l)
         return gamma, ag_hash
     else:
-        alpha = [0] * k
-        for i in range(k):
+        alpha = [0] * (k * PP.npoly)
+        for i in range(k * PP.npoly):
             alpha[i], nonce = random_poly(PP, ag_hash, nonce, PP.d)
         gamma, nonce = random_zq(PP, ag_hash, nonce, k)
         return alpha, gamma, ag_hash
@@ -81,20 +82,30 @@ def _compute_z(PP, Y, c, r):
     return Z, 0
 
 
+def _compute_m_prime(PP):
+    l = PP.l
+    m_prime = [0] * PP.npoly
+    for i in range(PP.npoly - 1):
+        m_prime[i] = 1
+    m_prime[PP.npoly - 1] = INTT(PP, [1] * (PP.Nc % l) + [0] * (l - (PP.Nc % l)))
+    return m_prime
+
+
 def proof_v(PP, t0, t1, r, m, public_seed):
     d = PP.d
     l = PP.l
     X = PP.X
     k = PP.k
+    npoly = PP.npoly
 
     # global global_try_index
     # try_index = 0
-    m_prime = INTT(PP, [1] * PP.Nc + [0] * (l - PP.Nc))
+    m_prime = _compute_m_prime(PP)
     B0, b = gen_public_b_with_extra(PP, public_seed)
     seed = randombytes(PP.seedlen)
     nonce = 0
     g, nonce = random_poly_with_zeros(PP, seed, nonce, d, PP.g_zeros)
-    t2 = scalar(b[1], r, X, d) + g
+    t2 = scalar(b[npoly], r, X, d) + g
     while True:
         # print('iteration', try_index)
         # try_index += 1
@@ -107,17 +118,19 @@ def proof_v(PP, t0, t1, r, m, public_seed):
             W[i] = matrix_vector(B0, Y[i], X, d)
 
         if k == 1:
+            # PP.npoly should be 1
             y = Y[0]
             gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
-            t3 = (scalar(b[2], r, X, d) - (2 * m - m_prime) * scalar(b[0], y, X, d)).mod(X**d + 1)
-            vpp = (scalar(b[2], y, X, d) + scalar(b[0], y, X, d)**2).mod(X**d + 1)
+            t3 = (scalar(b[npoly + 1], r, X, d) - (2 * m[0] - m_prime[0]) * scalar(b[0], y, X, d)).mod(X**d + 1)
+            vpp = (scalar(b[npoly + 1], y, X, d) + scalar(b[0], y, X, d)**2).mod(X**d + 1)
             intt_factor = gamma * l
-            h = (g + intt_factor * m - gamma).mod(X**d + 1)
-            vulp = scalar(list((intt_factor * b[0][i] + b[1][i]) for i in range(PP.baselen)), y, X, d)
+            h = (g + intt_factor * m[0] - gamma).mod(X**d + 1)
+            vulp = scalar(list((intt_factor * b[0][i] + b[npoly][i]) for i in range(PP.baselen)), y, X, d)
         else:
+            # TODO: npoly
             alpha, gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
-            t3 = scalar(b[2], r, X, d)
-            vpp = scalar(b[2], Y[0], X, d)
+            t3 = scalar(b[npoly + 1], r, X, d)
+            vpp = scalar(b[npoly + 1], Y[0], X, d)
             for i in range(k):
                 t3 -= (alpha[i] * phi(PP, ((2 * m - m_prime) * scalar(b[0], Y[i], X, d)).mod(X**d + 1), -i)).mod(X**d + 1)
                 vpp += (alpha[i] * phi(PP, (scalar(b[0], Y[i], X, d)**2).mod(X**d + 1), -i)).mod(X**d + 1)
@@ -136,7 +149,7 @@ def proof_v(PP, t0, t1, r, m, public_seed):
                     for nu in range(k):
                         coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[0], d * gamma[mu]), Y[(i - nu) % k], X, d), nu)
                     vulp[i] += (coef * coef_inner).mod(X**d + 1)
-                vulp[i] += scalar(b[1], Y[i], X, d)
+                vulp[i] += scalar(b[npoly], Y[i], X, d)
             
 
         c_hash = get_challenge_hash(PP, ag_hash, t3, vpp, h, vulp)
@@ -153,8 +166,9 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     l = PP.l
     X = PP.X
     k = PP.k
+    npoly = PP.npoly
 
-    m_prime = INTT(PP, [1] * PP.Nc + [0] * (l - PP.Nc))
+    m_prime = _compute_m_prime(PP)
     B0, b = gen_public_b_with_extra(PP, public_seed)
     h, c_hash, Z = proof
     c = get_challenge(PP, c_hash)
@@ -173,12 +187,12 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
             w[j] = (B0z[j] - c * t0[j]).mod(X**d + 1)
         W[i] = w
         
-        f1[i] = (scalar(b[0], Z[i], X, d) - c * t1).mod(X**d + 1)
-        f2[i] = (scalar(b[0], Z[i], X, d) - c * (t1 - m_prime)).mod(X**d + 1)
+        f1[i] = list((scalar(b[j], Z[i], X, d) - c * t1[j]).mod(X**d + 1) for j in range(npoly))
+        f2[i] = list((scalar(b[j], Z[i], X, d) - c * (t1[j] - m_prime[j])).mod(X**d + 1) for j in range(npoly))
         if k != 1:
             c = phi(PP, c, 1)
     
-    f3 = (scalar(b[2], Z[0], X, d) - c * t3).mod(X**d + 1)
+    f3 = (scalar(b[npoly + 1], Z[0], X, d) - c * t3).mod(X**d + 1)
     hlist = h.list()
     for i in range(PP.g_zeros):
         if hlist[i] != 0:
@@ -186,11 +200,12 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
             return 1
     if k == 1:
         gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
-        vpp = (f1[0] * f2[0] + f3).mod(X**d + 1)
+        vpp = (sum(f1[0][j] * f2[0][j] for j in range(npoly)) + f3).mod(X**d + 1)
         intt_factor = l * gamma
-        tau = (intt_factor * t1 - gamma).mod(X**d + 1)
-        vulp = (scalar(list((intt_factor * b[0][i] + b[1][i]) for i in range(PP.baselen)), Z[0], X, d) - c * (tau + t2 - h)).mod(X**d + 1)
+        tau = (intt_factor * sum(t1[i] for i in range(npoly)) - gamma).mod(X**d + 1)
+        vulp = (scalar(list((intt_factor * sum(b[j][i] for j in range(npoly)) + b[npoly][i]) for i in range(PP.baselen)), Z[0], X, d) - c * (tau + t2 - h)).mod(X**d + 1)
     else:
+        # TODO: npoly
         alpha, gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
         vpp = f3
         for i in range(k):
@@ -210,7 +225,7 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
                 for nu in range(k):
                     coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[0], d * gamma[mu]), Z[(i - nu) % k], X, d), nu)
                 vulp[i] += (coef * coef_inner).mod(X**d + 1)
-            vulp[i] += scalar(b[1], Z[i], X, d)
+            vulp[i] += scalar(b[npoly], Z[i], X, d)
             vulp[i] -= (c * (tau + t2 - h)).mod(X**d + 1)
             c = phi(PP, c, 1)
 
@@ -225,6 +240,7 @@ if __name__ == '__main__':
     from commit import commit
     from params import PublicParams
     from public import gen_public_b
+    from utils import m_from_vote_arr
     public_seed = b'-\xc2\xbd\xc1\x12\x94\xac\xd0f\xab~\x9f\x13\xb5\xac\xcaT\xbaFgD\xa6\x93\xd9\x92\xf2"\xb5\x006\x02\xa3'
 
     # TODO: remove index and code for average tries
@@ -243,10 +259,10 @@ if __name__ == '__main__':
     #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
     # print(f'average number of tries is {(global_try_index / tries)}')
 
-    PP = PublicParams(2, 127, 10)
-    v = [0] * PP.l
+    PP = PublicParams(2, 5, 10)
+    v = [0] * PP.Nc
     v[1] = 1
-    m = INTT(PP, v)
+    m = m_from_vote_arr(PP, v)
     B0, b1 = gen_public_b(PP, public_seed)
     r_seed = randombytes(PP.seedlen)
     t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)
@@ -259,8 +275,8 @@ if __name__ == '__main__':
         print('There is an error in verification')
 
     print('Trying negative scenarios')
-    for v in ([1]*2 + [0]*(PP.l - 2), [2] + [0]*(PP.l - 1)):
-        m = INTT(PP, v)
+    for v in ([1]*2 + [0]*(PP.Nc - 2), [2] + [0]*(PP.Nc - 1)):
+        m = m_from_vote_arr(PP, v)
         B0, b1 = gen_public_b(PP, public_seed)
         r_seed = randombytes(PP.seedlen)
         t0, t1, r, _ = commit(PP, B0, b1, m, r_seed, 0)

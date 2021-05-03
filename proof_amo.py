@@ -105,7 +105,7 @@ def gen_randomness_matrix(PP, p):
 def proof_amo(PP, S, T, p, public_seed):
     R = PP.R
 
-    B0, b1 = gen_public_b(PP, public_seed)
+    B0, b = gen_public_b(PP, public_seed)
     # global global_try_index1
     # try_index = 0
 #     seed = randombytes(PP.seedlen)
@@ -136,7 +136,7 @@ def verify_amo(PP, proof, T, p, public_seed):
     c_hash, Z = proof
     C = get_challenge_amo(PP, c_hash, p)
     C = Matrix(R, C)
-    B0, b1 = gen_public_b(PP, public_seed)
+    B0, b = gen_public_b(PP, public_seed)
     
     if check_Z_len(PP, Z):
         print('check_Z_len')
@@ -155,13 +155,15 @@ def get_challenge_hash_amo_to_zero(PP, T0, T1, W0, W1, p):
     for i in range(PP.kappa):
         for j in range(p):
             shake.update(poly_to_bytes(T0[i][j]))
-    for i in range(p):
-        shake.update(poly_to_bytes(T1[i]))
+    for i in range(PP.npoly):
+        for j in range(p):
+            shake.update(poly_to_bytes(T1[i][j]))
     for i in range(PP.kappa):
         for j in range(PP.amo_n):
             shake.update(poly_to_bytes(W0[i][j]))
-    for i in range(PP.amo_n):
-        shake.update(poly_to_bytes(W1[i]))
+    for i in range(PP.npoly):
+        for j in range(PP.amo_n):
+            shake.update(poly_to_bytes(W1[i][j]))
     c_hash = shake.read(int(PP.seedlen))
     return c_hash
 
@@ -173,7 +175,7 @@ def get_challenge_amo_to_zero(PP, c_hash, p):
 def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
     R = PP.R
 
-    B0, b1 = gen_public_b(PP, public_seed)
+    B0, b = gen_public_b(PP, public_seed)
     # global global_try_index2
     # try_index = 0
     while True:
@@ -183,7 +185,7 @@ def proof_amo_to_zero(PP, S, T0, T1, p, public_seed):
     
         Y = discrete_gaussian_y(PP, PP.baselen, PP.amo_n, PP.sigma2)
         W0 = Matrix(R, B0) * Y
-        W1 = vector(R, b1) * Y
+        W1 = Matrix(R, list(vector(R, b[i]) * Y for i in range(PP.npoly)))
         
         c_hash = get_challenge_hash_amo_to_zero(PP, T0, T1, W0, W1, p)
         C = get_challenge_amo_to_zero(PP, c_hash, p)
@@ -203,14 +205,14 @@ def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
     c_hash, Z = proof
     C = get_challenge_amo_to_zero(PP, c_hash, p)
     C = Matrix(R, C)
-    B0, b1 = gen_public_b(PP, public_seed)
+    B0, b = gen_public_b(PP, public_seed)
     
     if check_Z_len(PP, Z):
         print('check_Z_len')
         return 1
     
     W0 = Matrix(R, B0) * Z - T0 * C
-    W1 = vector(R, b1) * Z - T1 * C
+    W1 = Matrix(R, list(vector(R, b[i]) * Z - T1[i] * C for i in range(PP.npoly)))
     
     c_hash_prime = get_challenge_hash_amo_to_zero(PP, T0, T1, W0, W1, p)
     if c_hash != c_hash_prime:
@@ -222,7 +224,7 @@ def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
 def _gen_random_commitments_impl(PP, p, public_seed, m_func):
     R = PP.R
 
-    B0, b1 = gen_public_b(PP, public_seed)
+    B0, b = gen_public_b(PP, public_seed)
     
     r_seed = randombytes(PP.seedlen)
     seed = randombytes(PP.seedlen)
@@ -231,12 +233,15 @@ def _gen_random_commitments_impl(PP, p, public_seed, m_func):
     T1 = []
     nonce = 0
     for i in range(p):
-        xi, nonce = m_func(PP, seed, nonce, PP.d)
-        t0, t1, r, nonce = commit(PP, B0, b1, xi, r_seed, nonce)
+        xi = []
+        for i in range(PP.npoly):
+            x, nonce = m_func(PP, seed, nonce, PP.d)
+            xi.append(x)
+        t0, t1, r, nonce = commit(PP, B0, b, xi, r_seed, nonce)
         S.append(r)
         T0.append(t0)
         T1.append(t1)
-    return Matrix(R, S).transpose(), Matrix(R, T0).transpose(), vector(R, T1)
+    return Matrix(R, S).transpose(), Matrix(R, T0).transpose(), Matrix(R, T1).transpose()
 
 
 def gen_random_commitments(PP, p, public_seed):
@@ -279,8 +284,8 @@ if __name__ == '__main__':
     else:
         print('There is an error in verification amo')
     S, T0, T1 = gen_random_commitments_to_zero(PP, p - Nv, public_seed)
-    amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, len(T1), public_seed)
-    ver_result_zero = verify_amo_to_zero(PP, amo_zero_proof, T0, T1, len(T1), public_seed)
+    amo_zero_proof = proof_amo_to_zero(PP, S, T0, T1, p - Nv, public_seed)
+    ver_result_zero = verify_amo_to_zero(PP, amo_zero_proof, T0, T1, p - Nv, public_seed)
     if ver_result_zero == 0:
         print('Verify amo to zero is successfull')
     else:

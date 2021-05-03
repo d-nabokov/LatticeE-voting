@@ -4,7 +4,7 @@ from random_polynomials import random_poly
 def gen_public_b(PP, seed):
     B0, b = gen_public_b_with_extra(PP, seed)
     # gen_public_b_with_extra should call gen_public_b but whatever
-    return B0, b[0]
+    return B0, b[:PP.npoly]
 
 
 def gen_public_b_with_extra(PP, seed):
