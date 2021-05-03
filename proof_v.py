@@ -127,19 +127,19 @@ def proof_v(PP, t0, t1, r, m, public_seed):
             h = (g + intt_factor * m[0] - gamma).mod(X**d + 1)
             vulp = scalar(list((intt_factor * b[0][i] + b[npoly][i]) for i in range(PP.baselen)), y, X, d)
         else:
-            # TODO: npoly
             alpha, gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
             t3 = scalar(b[npoly + 1], r, X, d)
             vpp = scalar(b[npoly + 1], Y[0], X, d)
             for i in range(k):
-                t3 -= (alpha[i] * phi(PP, ((2 * m - m_prime) * scalar(b[0], Y[i], X, d)).mod(X**d + 1), -i)).mod(X**d + 1)
-                vpp += (alpha[i] * phi(PP, (scalar(b[0], Y[i], X, d)**2).mod(X**d + 1), -i)).mod(X**d + 1)
+                for j in range(npoly):
+                    t3 -= (alpha[i * npoly + j] * phi(PP, ((2 * m[j] - m_prime[j]) * scalar(b[j], Y[i], X, d)).mod(X**d + 1), -i)).mod(X**d + 1)
+                    vpp += (alpha[i * npoly + j] * phi(PP, (scalar(b[j], Y[i], X, d)**2).mod(X**d + 1), -i)).mod(X**d + 1)
             h = g
             for mu in range(k):
                 coef = X**mu / k
                 coef_inner = 0
                 for nu in range(k):
-                    coef_inner += phi(PP, (d * gamma[mu] * m - gamma[mu]).mod(X**d + 1), nu)
+                    coef_inner += phi(PP, (d * gamma[mu] * sum(m[j] for j in range(npoly)) - gamma[mu]).mod(X**d + 1), nu)
                 h += (coef * coef_inner).mod(X**d + 1)
             vulp = [0] * k
             for i in range(k):
@@ -147,7 +147,8 @@ def proof_v(PP, t0, t1, r, m, public_seed):
                     coef = X**mu / k
                     coef_inner = 0
                     for nu in range(k):
-                        coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[0], d * gamma[mu]), Y[(i - nu) % k], X, d), nu)
+                        for j in range(npoly):
+                            coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[j], d * gamma[mu]), Y[(i - nu) % k], X, d), nu)
                     vulp[i] += (coef * coef_inner).mod(X**d + 1)
                 vulp[i] += scalar(b[npoly], Y[i], X, d)
             
@@ -199,23 +200,24 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
             print('h not 0')
             return 1
     if k == 1:
+        # PP.npoly should be 1
         gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
-        vpp = (sum(f1[0][j] * f2[0][j] for j in range(npoly)) + f3).mod(X**d + 1)
+        vpp = (f1[0][0] * f2[0][0] + f3).mod(X**d + 1)
         intt_factor = l * gamma
         tau = (intt_factor * sum(t1[i] for i in range(npoly)) - gamma).mod(X**d + 1)
         vulp = (scalar(list((intt_factor * sum(b[j][i] for j in range(npoly)) + b[npoly][i]) for i in range(PP.baselen)), Z[0], X, d) - c * (tau + t2 - h)).mod(X**d + 1)
     else:
-        # TODO: npoly
         alpha, gamma, ag_hash = get_alpha_gamma(PP, t0, t1, t2, W)
         vpp = f3
         for i in range(k):
-            vpp += (alpha[i] * phi(PP, (f1[i] * f2[i]).mod(X**d + 1), -i)).mod(X**d + 1)
+            for j in range(npoly):
+                vpp += (alpha[i * npoly + j] * phi(PP, (f1[i][j] * f2[i][j]).mod(X**d + 1), -i)).mod(X**d + 1)
         tau = 0
         for mu in range(k):
             coef = X**mu / k
             coef_inner = 0
             for nu in range(k):
-                coef_inner += phi(PP, (d * gamma[mu] * t1 - gamma[mu]).mod(X**d + 1), nu)
+                coef_inner += phi(PP, (d * gamma[mu] * sum(t1[j] for j in range(npoly)) - gamma[mu]).mod(X**d + 1), nu)
             tau += (coef * coef_inner).mod(X**d + 1)
         vulp = [0] * k
         for i in range(k):
@@ -223,7 +225,8 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
                 coef = X**mu / k
                 coef_inner = 0
                 for nu in range(k):
-                    coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[0], d * gamma[mu]), Z[(i - nu) % k], X, d), nu)
+                    for j in range(npoly):
+                        coef_inner += phi(PP, scalar(vector_mult_by_scalar(b[j], d * gamma[mu]), Z[(i - nu) % k], X, d), nu)
                 vulp[i] += (coef * coef_inner).mod(X**d + 1)
             vulp[i] += scalar(b[npoly], Z[i], X, d)
             vulp[i] -= (c * (tau + t2 - h)).mod(X**d + 1)
@@ -259,7 +262,7 @@ if __name__ == '__main__':
     #     proof, additional_com = proof_v(PP, t0, t1, r, m, public_seed)
     # print(f'average number of tries is {(global_try_index / tries)}')
 
-    PP = PublicParams(2, 5, 10)
+    PP = PublicParams(2, 129, 10)
     v = [0] * PP.Nc
     v[1] = 1
     m = m_from_vote_arr(PP, v)
