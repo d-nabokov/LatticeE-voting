@@ -1,7 +1,11 @@
+from collections import defaultdict
+
 class BBoard:
-    def __init__(self, CA):
+    def __init__(self, CA, authorities):
+        self.authorities = authorities
         self.ballots = {}
         self.tallies = {}
+        self.ballot_correctness = {}
         self.CA = CA
         
         
@@ -16,6 +20,21 @@ class BBoard:
     def all_ballots(self):
         for v_id, ballot in self.ballots.items():
             yield v_id, ballot
+
+
+    def add_authority_j_ballot_correctness(self, a_id, ballot_correctness):
+        self.ballot_correctness[a_id] = ballot_correctness
+
+
+    def correct_ballots(self):
+        assert(len(self.authorities) == len(self.ballot_correctness))
+        is_correct = defaultdict(int)
+        for a_id, ballot_correctness in self.ballot_correctness.items():
+            for v_id, is_ok in ballot_correctness.items():
+                is_correct[v_id] |= is_ok
+        for v_id, ballot in self.ballots.items():
+            if is_correct[v_id] == 0:
+                yield v_id, ballot
             
             
     def add_authority_tally(self, tally):

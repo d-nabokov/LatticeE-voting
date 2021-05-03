@@ -39,11 +39,14 @@ def rejection_sampling_vector(z, cr, sigma, M, q):
 
 def max_with_index(l):
     m = 0
+    indexes = []
     for i, val in enumerate(l):
+        if val == m:
+            indexes.append(i)
         if val > m:
             m = val
-            index = i
-    return m, index
+            indexes = [i]
+    return m, indexes
 
 
 def m_from_vote_arr(PP, vote_arr):

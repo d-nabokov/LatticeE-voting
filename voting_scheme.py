@@ -51,25 +51,28 @@ def vote(PP, v_id, vote_arr, public_seed, BB):
     # S should be encrypted
     ballot = Ballot(v_id, vproof, (T0, T1), additional_com, S, signature)
     BB.add_ballot(ballot)
-    
-
-def _check_ballot_sig(ballot, CA):
-    return 1
 
 
-def _check_tally_sig(tally, CA):
-    return 1
+def testballots(PP, a_id, public_seed, BB):
+    ballot_correctness = {}
+    for v_id, ballot in BB.all_ballots():
+        ok = 0
+        # Should decrypt using authority's secret key
+        r = ballot.enc_r[a_id]
+        if inf_norm_vect(r, PP.q) > PP.beta_commit_infty:
+            ok = 1
+        if _check_ballot_vproof(PP, ballot, public_seed):
+            ok = 1
+        ballot_correctness[v_id] = ok
+        if ok == 1:
+            print(f'voter {v_id} is cheating! - says authority {a_id}')
+
+    BB.add_authority_j_ballot_correctness(a_id, ballot_correctness)
 
 
-def extract_from_ballot_by_j(PP, v_id, a_id, BB):
-    ballot = BB.get_ballot(v_id)
-    # Should check signature
-    ballot.signature
+def _extract_from_ballot_by_j(PP, v_id, a_id, ballot):
     # Should decrypt using authority's secret key
     r = ballot.enc_r[a_id]
-    if inf_norm_vect(r, PP.q) > PP.beta_commit_infty:
-        print('r has invalid values')
-        return 1
     T0, T1 = ballot.com
     return r, T0[a_id], T1[a_id]
 
@@ -78,8 +81,8 @@ def tally_j(PP, a_id, public_seed, BB):
     S = []
     T0 = []
     T1 = []
-    for v_id, ballot in BB.all_ballots():
-        r, t0, t1 = extract_from_ballot_by_j(PP, v_id, a_id, BB)
+    for v_id, ballot in BB.correct_ballots():
+        r, t0, t1 = _extract_from_ballot_by_j(PP, v_id, a_id, ballot)
         S.append(r)
         T0.append(t0)
         T1.append(t1)
@@ -125,6 +128,13 @@ def tally_all(PP, public_seed, BB):
     return _res_to_list_of_candidates(PP, res)
 
 
+def _check_ballot_vproof(PP, ballot, public_seed):
+    T0, T1 = ballot.com
+    t0 = list(sum(T0[j][i] for j in range(PP.Na)) for i in range(PP.kappa))
+    t1 = list(sum(T1[j][i] for j in range(PP.Na)) for i in range(PP.npoly))
+    return verify_v(PP, ballot.vproof, (t0, t1), ballot.additional_com, public_seed)
+
+
 def verify(PP, result, public_seed, BB):
     B0, b = gen_public_b(PP, public_seed)
     T0_a = []
@@ -133,14 +143,12 @@ def verify(PP, result, public_seed, BB):
         T0_a.append(list())
         T1_a.append(list())
     
-    for v_id, ballot in BB.all_ballots():
+    for v_id, ballot in BB.correct_ballots():
         T0, T1 = ballot.com
         for i in range(PP.Na):
             T0_a[i].append(T0[i])
             T1_a[i].append(T1[i])
-        t0 = list(sum(T0[j][i] for j in range(PP.Na)) for i in range(PP.kappa))
-        t1 = list(sum(T1[j][i] for j in range(PP.Na)) for i in range(PP.npoly))
-        if verify_v(PP, ballot.vproof, (t0, t1), ballot.additional_com, public_seed):
+        if _check_ballot_vproof(PP, ballot, public_seed):
             print(f'voter {v_id} is cheating!')
             return 1
     j = 0

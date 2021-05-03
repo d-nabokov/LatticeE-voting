@@ -139,13 +139,13 @@ def verify_amo(PP, proof, T, p, public_seed):
     B0, b = gen_public_b(PP, public_seed)
     
     if check_Z_len(PP, Z):
-        print('check_Z_len')
+        # print('check_Z_len')
         return 1
     
     W = Matrix(R, B0) * Z - T * C
     c_hash_prime = get_challenge_hash_amo(PP, T, W, p)
     if c_hash != c_hash_prime:
-        print('C != C_prime')
+        # print('C != C_prime')
         return 1
     return 0
 
@@ -208,7 +208,7 @@ def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
     B0, b = gen_public_b(PP, public_seed)
     
     if check_Z_len(PP, Z):
-        print('check_Z_len')
+        # print('check_Z_len')
         return 1
     
     W0 = Matrix(R, B0) * Z - T0 * C
@@ -216,7 +216,7 @@ def verify_amo_to_zero(PP, proof, T0, T1, p, public_seed):
     
     c_hash_prime = get_challenge_hash_amo_to_zero(PP, T0, T1, W0, W1, p)
     if c_hash != c_hash_prime:
-        print('C != C_prime')
+        # print('C != C_prime')
         return 1
     return 0
 

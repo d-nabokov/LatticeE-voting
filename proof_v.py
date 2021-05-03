@@ -176,7 +176,7 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     t0, t1 = commitment
     t2, t3 = additional_com
     if check_z_len(PP, Z):
-        print('check_z_len')
+        # print('check_z_len')
         return 1
     W = [0] * k
     f1 = [0] * k
@@ -197,7 +197,7 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
     hlist = h.list()
     for i in range(PP.g_zeros):
         if hlist[i] != 0:
-            print('h not 0')
+            # print('h not 0')
             return 1
     if k == 1:
         # PP.npoly should be 1
@@ -234,7 +234,7 @@ def verify_v(PP, proof, commitment, additional_com, public_seed):
 
     c_hash_prime = get_challenge_hash(PP, ag_hash, t3, vpp, h, vulp)
     if c_hash != c_hash_prime:
-        print('c != c_prime')
+        # print('c != c_prime')
         return 1
     return 0
 
