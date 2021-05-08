@@ -40,7 +40,7 @@ class PublicParams:
 
         alpha = 11 * self.k
         self.average_rejection_tries1 = e**(12 / alpha + 1 / (2 * alpha**2))
-        self.sigma1 = alpha * sqrt(self.baselen * self.d * self.Na)
+        self.sigma1 = alpha * sqrt(self.baselen * self.d**2 * self.Na)
         self.beta1 = self.sigma1 * sqrt(2 * self.baselen * self.d)
         self.inf_bound1 = 2**(ceil(log(6 * self.sigma1, 2))) - 1
 
