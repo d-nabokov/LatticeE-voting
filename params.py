@@ -1,5 +1,9 @@
 from sage.all import *
 
+def _ceil_float(x, pos):
+    factor = 10**pos
+    return ceil(x * factor) / factor
+
 
 class PublicParams:
     def __init__(self, Na, Nc, Nv_max):
@@ -40,7 +44,8 @@ class PublicParams:
 
         alpha = 11 * self.k
         self.average_rejection_tries1 = e**(12 / alpha + 1 / (2 * alpha**2))
-        self.sigma1 = alpha * sqrt(self.baselen * self.d**2 * self.Na)
+        theta_1 = _ceil_float(sqrt(101 / (2 * self.baselen * self.d**2 * log(e, 2))) + 5/6, 3)
+        self.sigma1 = alpha * sqrt(theta_1 * self.baselen * self.d**2 * self.Na)
         self.beta1 = self.sigma1 * sqrt(2 * self.baselen * self.d)
         self.inf_bound1 = 2**(ceil(log(6 * self.sigma1, 2))) - 1
 
@@ -51,7 +56,9 @@ class PublicParams:
         p = self.number_of_authority_commitments(Nv_max)
 
         self.average_rejection_tries2 = 3
-        self.sigma2 = 11 * sqrt(self.baselen * self.amo_n * self.d * p)
+        theta_2 = sqrt(101 / (2 * self.baselen * self.amo_n * self.d * log(e, 2))) + (5/6) * ((self.u + 1)/self.u)
+        theta_2 = _ceil_float(theta_2, 3)
+        self.sigma2 = 11 * sqrt(theta_2 * self.baselen * self.amo_n * self.d * p)
         self.beta2 = self.sigma2 * sqrt(2 * self.baselen * self.d)
         self.inf_bound2 = 2**(ceil(log(6 * self.sigma2, 2))) - 1
 
